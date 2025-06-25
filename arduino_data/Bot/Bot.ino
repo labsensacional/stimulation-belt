@@ -65,6 +65,8 @@ void loop() {
       sendSignal(nivel30Signal, sizeof(nivel30Signal) / sizeof(nivel30Signal[0]));
     } else if (command.equalsIgnoreCase("nivel60")) {
       sendSignal(nivel60Signal, sizeof(nivel60Signal) / sizeof(nivel60Signal[0]));
+    } else if (command.equalsIgnoreCase("nivel90")) {
+      sendSignal(nivel90Signal, sizeof(nivel90Signal) / sizeof(nivel90Signal[0]));
     }
   }
 }

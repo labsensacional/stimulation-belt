@@ -8,7 +8,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 # Serial port configuration
-SERIAL_PORT = '/dev/ttyACM0'  # Change to your Arduino serial port (e.g., "COM3" on Windows)
+SERIAL_PORT = '/dev/ttyUSB0'  # Change to your Arduino serial port (e.g., "COM3" on Windows)
 BAUD_RATE = 9600
 
 # Open serial communication with the Arduino
