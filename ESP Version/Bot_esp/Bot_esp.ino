@@ -192,40 +192,40 @@ void handleMessages(int numMsgs) {
 
     if (text == "/start") {
       bot.sendMessage(chat_id,
-        "RF bot listo.\nComandos:\n"
+        "⚡ Elektra bot lista ⚡.\n\nComandos\n"
         " • /vib\n"
         " • /son\n"
-        " • /nivel1 /nivel10 /nivel30 /nivel60 /nivel99", "");
+        " • /nivel1 /nivel10 /nivel30 /nivel60 /nivel90", "");
     }
     else if (text == "/vib") {
       sendSignal(vibSignal);
-      bot.sendMessage(chat_id, "Se envió vib.", "");
+      bot.sendMessage(chat_id, "⚠️ - Vibración activada 📳", "");
     }
     else if (text == "/son") {
       sendSignal(sonSignal);
-      bot.sendMessage(chat_id, "Se envió son.", "");
+      bot.sendMessage(chat_id, "⚠️ - Alarma activada 📢", "");
     }
 
     else if (text.equalsIgnoreCase("/nivel1")){
       sendSignal(nivel1Signal);
-      bot.sendMessage(chat_id, "Se envió nivel1.", "");
+      bot.sendMessage(chat_id, "⚠️ - Estimulo eléctrico nivel 1 activado ⚡", "");
     }  
     else if (text.equalsIgnoreCase("/nivel10")){
       sendSignal(nivel10Signal);
-      bot.sendMessage(chat_id, "Se envió nivel10.", "");
+      bot.sendMessage(chat_id, "⚠️ - Estimulo eléctrico nivel 10 activado ⚡", "");
     }  
     else if (text.equalsIgnoreCase("/nivel30")){
       sendSignal(nivel30Signal);
-      bot.sendMessage(chat_id, "Se envió nivel30.", "");
+      bot.sendMessage(chat_id, "⚠️ - Estimulo eléctrico nivel 30 activado ⚡", "");
     }  
     else if (text.equalsIgnoreCase("/nivel60")){
       sendSignal(nivel60Signal);
-      bot.sendMessage(chat_id, "Se envió nivel60.", "");
+      bot.sendMessage(chat_id, "⚠️ - Estimulo eléctrico nivel 60 activado ⚡", "");
     }  
 
     else if (text.equalsIgnoreCase("/nivel90")){
       sendSignal(nivel90Signal);
-      bot.sendMessage(chat_id, "Se envió nivel90.", "");
+      bot.sendMessage(chat_id, "⚠️ - Estimulo eléctrico nivel 90 activado ⚡", "");
     }  
 
   }
