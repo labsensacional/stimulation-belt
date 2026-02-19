@@ -22,3 +22,9 @@ Compramos distintos modulos RF de 433 MHZ para OOK y lo conectamos a un Arduino 
 - https://articulo.mercadolibre.com.ar/MLA-780605460-emisor-receptor-superheterodino-433-armodltxrxwl102-_JM?quantity=1
     - De este anduvo el transmisor y no el receptor
 
+## Proyectos Relacionados
+
+- https://pishock.com/
+- https://openshock.org/
+    - https://wiki.openshock.org/hardware/shockers/caixianlin
+- https://github.com/Nat-the-Kat/caixianlin_remote_shocker
