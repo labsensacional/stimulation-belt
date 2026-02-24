@@ -40,7 +40,7 @@ const uint8_t DATA_PIN   = 5;   // D1
 const uint8_t ENABLE_PIN = 4;   // D2
 
 // ── Telegram bot token ───────────────────────────────────
-const char* BOT_TOKEN = "7730578439:AAFxy1-uXIsE8c73HOsEb9axsZlmZ_kv684";   // keep private!
+const char* BOT_TOKEN = "COMPLETAR";   // keep private!
 
 // ── Collar configuration ─────────────────────────────────
 // 16-bit transmitter ID the collars are paired to (0–65535).
