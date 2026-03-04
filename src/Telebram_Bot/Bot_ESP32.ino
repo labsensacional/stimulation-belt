@@ -259,12 +259,21 @@ void saveCred(const char* s, const char* p) {
 
 bool connectToKnown() {
   for (uint8_t i = 0; i < credCount; i++) {
-    Serial.printf("  trying %s … ", creds[i].ssid);
+    Serial.printf("  trying '%s' … ", creds[i].ssid);
+    WiFi.disconnect(true);
+    delay(200);
     WiFi.begin(creds[i].ssid, creds[i].pass);
-    for (uint8_t j = 0; j < 30 && WiFi.status() != WL_CONNECTED; j++)
-      delay(333);
-    if (WiFi.status() == WL_CONNECTED) { Serial.println("OK"); return true; }
-    Serial.println("fail");
+    for (uint8_t j = 0; j < 60 && WiFi.status() != WL_CONNECTED; j++) {
+      delay(500);
+      digitalWrite(LED_BUILTIN, j % 2);   // parpadeo rápido = intentando
+    }
+    if (WiFi.status() == WL_CONNECTED) {
+      digitalWrite(LED_BUILTIN, HIGH);
+      Serial.println("OK");
+      return true;
+    }
+    digitalWrite(LED_BUILTIN, LOW);
+    Serial.printf("fail (status=%d)\n", WiFi.status());
   }
   return false;
 }
@@ -365,12 +374,30 @@ void setup() {
 
   rfQueue = xQueueCreate(RF_QUEUE_LEN, sizeof(RFCmd));
 
-  pinMode(DATA_PIN,   OUTPUT);
-  pinMode(ENABLE_PIN, OUTPUT);
+  pinMode(DATA_PIN,    OUTPUT);
+  pinMode(ENABLE_PIN,  OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(0,           INPUT_PULLUP);  // botón BOOT
   digitalWrite(DATA_PIN,   LOW);
   digitalWrite(ENABLE_PIN, LOW);
+  digitalWrite(LED_BUILTIN, LOW);
+
+  // Mantener BOOT apretado al encender → borra todas las redes guardadas
+  delay(100);
+  if (digitalRead(0) == LOW) {
+    Serial.println(">>> BOOT presionado: borrando credenciales WiFi <<<");
+    EEPROM.begin(EEPROM_SIZE);
+    EEPROM.write(0, 0);
+    EEPROM.commit();
+    // Parpadeo rápido para confirmar
+    for (int k = 0; k < 10; k++) { digitalWrite(LED_BUILTIN, k%2); delay(100); }
+    ESP.restart();
+  }
 
   loadCreds();
+  Serial.printf("Redes guardadas: %d\n", credCount);
+  for (uint8_t i = 0; i < credCount; i++)
+    Serial.printf("  [%d] '%s'\n", i, creds[i].ssid);
   WiFi.mode(WIFI_STA);
   if (!connectToKnown()) {
     startConfigPortal();
@@ -388,6 +415,13 @@ void setup() {
 // ═══════════════════════════════════════════════════════════
 void loop() {
   configServer.handleClient();
+
+  // Parpadeo lento del LED cuando está en modo AP esperando configuración
+  if (WiFi.getMode() == WIFI_AP) {
+    unsigned long t = millis();
+    digitalWrite(LED_BUILTIN, (t / 1000) % 2);
+    return;
+  }
 
   unsigned long now = millis();
 
