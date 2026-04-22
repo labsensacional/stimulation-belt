@@ -22,6 +22,44 @@ Compramos distintos modulos RF de 433 MHZ para OOK y lo conectamos a una ESP32. 
 - https://articulo.mercadolibre.com.ar/MLA-780605460-emisor-receptor-superheterodino-433-armodltxrxwl102-_JM?quantity=1
     - De este anduvo el transmisor y no el receptor
 
+## Sketches ESP32
+
+| Carpeta | Descripción |
+|---|---|
+| `src/Telegram_Bot` | Control por comandos de Telegram sobre WiFi |
+| `src/BLE_Keyboard` | Dispara shocks al presionar teclas en un teclado BLE HID |
+| `src/Dual_Mode` | **Fusión de ambos** — switchea entre modos con el botón BOOT |
+
+### Dual_Mode — cómo switchear de modo
+
+| Acción al encender | Resultado |
+|---|---|
+| No tocar nada | Arranca en el modo guardado (Telegram por defecto) |
+| Mantener BOOT < 2 s y soltar | Cambia de modo (Telegram ↔ BLE Keyboard), guarda y reinicia |
+| Mantener BOOT ≥ 2 s | Borra credenciales WiFi guardadas y reinicia |
+
+El LED parpadea rápido mientras se sostiene el botón para confirmar que fue registrado.
+
+### Compilar y subir
+
+`Dual_Mode` requiere el esquema `huge_app` (WiFi + BLE juntos no entran en la partición por defecto):
+
+```bash
+~/.local/bin/arduino-cli compile \
+  --fqbn "esp32:esp32:esp32:PartitionScheme=huge_app" \
+  --upload --port /dev/ttyUSB0 \
+  "src/Dual_Mode"
+```
+
+Para los sketches individuales:
+
+```bash
+~/.local/bin/arduino-cli compile \
+  --fqbn esp32:esp32:esp32 \
+  --upload --port /dev/ttyUSB0 \
+  "src/Telegram_Bot"   # o src/BLE_Keyboard
+```
+
 ## Proyectos Relacionados
 
 - https://pishock.com/

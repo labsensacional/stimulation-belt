@@ -47,18 +47,26 @@
 const uint8_t DATA_PIN   = 26;   // GPIO26
 const uint8_t ENABLE_PIN = 27;   // GPIO27
 
+#ifndef LED_BUILTIN
+#define LED_BUILTIN 2   // GPIO2 is the built-in LED on most ESP32 boards
+#endif
+
 // ── Telegram bot token ────────────────────────────────────
-const char* BOT_TOKEN = "COMPLETAR";   // ← put your token here, keep private!
+const char* BOT_TOKEN = "7730578439:AAFxy1-uXIsE8c73HOsEb9axsZlmZ_kv684";
 
 // ── Collar configuration ──────────────────────────────────
 #define TRANSMITTER_ID  0xB497   // 16-bit ID the collars are paired to
 
+// ── Hardcoded fallback network ────────────────────────────
+const char* HARDCODED_SSID = "si sos kinky y lo sabes, aplaudi";
+const char* HARDCODED_PASS = "obligame";
+
 // ── WiFi credential store (EEPROM) ───────────────────────
 #define MAX_CREDENTIALS  5
-#define EEPROM_SIZE      512
+#define EEPROM_SIZE      700   // 1 + MAX_CREDENTIALS * sizeof(WiFiCred) = 1 + 5*128
 
 struct WiFiCred {
-  char ssid[32];
+  char ssid[64];   // 64 to accommodate long SSIDs
   char pass[64];
 };
 
@@ -246,6 +254,18 @@ void loadCreds() {
 }
 
 void saveCred(const char* s, const char* p) {
+  // If SSID already exists, overwrite its password
+  for (uint8_t i = 0; i < credCount; i++) {
+    if (strcmp(creds[i].ssid, s) == 0) {
+      strncpy(creds[i].pass, p, sizeof(creds[0].pass) - 1);
+      creds[i].pass[sizeof(creds[0].pass) - 1] = '\0';
+      EEPROM.put(1 + i * sizeof(WiFiCred), creds[i]);
+      EEPROM.commit();
+      Serial.printf("Contraseña actualizada para '%s'\n", s);
+      return;
+    }
+  }
+  // New entry
   if (credCount >= MAX_CREDENTIALS) return;
   strncpy(creds[credCount].ssid, s, sizeof(creds[0].ssid) - 1);
   strncpy(creds[credCount].pass, p, sizeof(creds[0].pass) - 1);
@@ -257,23 +277,42 @@ void saveCred(const char* s, const char* p) {
   EEPROM.commit();
 }
 
+static bool tryConnect(const char* ssid, const char* pass) {
+  Serial.printf("  trying '%s' … ", ssid);
+  WiFi.disconnect(true);
+  delay(200);
+  WiFi.begin(ssid, pass);
+  for (uint8_t j = 0; j < 60 && WiFi.status() != WL_CONNECTED; j++) {
+    delay(500);
+    digitalWrite(LED_BUILTIN, j % 2);   // parpadeo rápido = intentando
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    digitalWrite(LED_BUILTIN, HIGH);
+    Serial.println("OK");
+    return true;
+  }
+  digitalWrite(LED_BUILTIN, LOW);
+  Serial.printf("fail (status=%d)\n", WiFi.status());
+  return false;
+}
+
 bool connectToKnown() {
+  // Try hardcoded network first (may be overridden in EEPROM below)
+  Serial.println("  [hardcoded]");
+  // Check if EEPROM has an updated password for the hardcoded SSID
+  const char* hardPass = HARDCODED_PASS;
   for (uint8_t i = 0; i < credCount; i++) {
-    Serial.printf("  trying '%s' … ", creds[i].ssid);
-    WiFi.disconnect(true);
-    delay(200);
-    WiFi.begin(creds[i].ssid, creds[i].pass);
-    for (uint8_t j = 0; j < 60 && WiFi.status() != WL_CONNECTED; j++) {
-      delay(500);
-      digitalWrite(LED_BUILTIN, j % 2);   // parpadeo rápido = intentando
+    if (strcmp(creds[i].ssid, HARDCODED_SSID) == 0) {
+      hardPass = creds[i].pass;  // use stored (potentially updated) password
+      break;
     }
-    if (WiFi.status() == WL_CONNECTED) {
-      digitalWrite(LED_BUILTIN, HIGH);
-      Serial.println("OK");
-      return true;
-    }
-    digitalWrite(LED_BUILTIN, LOW);
-    Serial.printf("fail (status=%d)\n", WiFi.status());
+  }
+  if (tryConnect(HARDCODED_SSID, hardPass)) return true;
+
+  // Try remaining stored credentials
+  for (uint8_t i = 0; i < credCount; i++) {
+    if (strcmp(creds[i].ssid, HARDCODED_SSID) == 0) continue;  // already tried
+    if (tryConnect(creds[i].ssid, creds[i].pass)) return true;
   }
   return false;
 }
