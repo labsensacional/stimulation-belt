@@ -15,12 +15,10 @@
  *       with a Flipper Zero or by putting the collar in pairing
  *       mode and using any value you like.
  *    2. Channels 0 and 1 are used (mapped to keys 7/4/1 and 8/5/2).
- *       Key 9 shocks both channels simultaneously.
  *
- *  RF wiring (FS1000A 433 MHz OOK module):
- *    DATA_PIN → DATA pin of transmitter
- *    VCC      → 5V (mejor alcance) o 3.3V
- *    GND      → GND
+ *  RF wiring (433 MHz OOK module with ENABLE pin):
+ *    DATA_PIN   → DATA pin of transmitter
+ *    ENABLE_PIN → ENABLE / VCC-switch pin of transmitter
  *
  *  Board: ESP32 Dev Module (or any ESP32 variant)
  *  Serial monitor baud rate: 115200
@@ -34,7 +32,8 @@
 #include <BLESecurity.h>
 
 // ---------------- RF pin assignments ----------------
-const uint8_t DATA_PIN = 26;  // GPIO26 → DATA del FS1000A
+const uint8_t DATA_PIN   = 26;  // GPIO26 — same side as VIN/3V3
+const uint8_t ENABLE_PIN = 27;  // GPIO27 — same side as VIN/3V3
 
 // ---------------- Collar configuration ----------------
 #define TRANSMITTER_ID  0xB497
@@ -104,6 +103,8 @@ void sendStimulus(uint16_t txId, uint8_t channel, uint8_t action,
                 (uint8_t)(packet >> 16), (uint8_t)(packet >>  8),
                 (uint8_t)(packet));
 
+  digitalWrite(ENABLE_PIN, HIGH);
+
   for (uint8_t r = 0; r < repeats; r++) {
     digitalWrite(DATA_PIN, HIGH); delayMicroseconds(1400);
     digitalWrite(DATA_PIN, LOW);  delayMicroseconds(750);
@@ -125,6 +126,7 @@ void sendStimulus(uint16_t txId, uint8_t channel, uint8_t action,
   }
 
   digitalWrite(DATA_PIN, LOW);
+  digitalWrite(ENABLE_PIN, LOW);
   Serial.printf("[RF] <<< done (%d repeats sent)\n", repeats);
 }
 
@@ -216,12 +218,6 @@ void onHIDReport(BLERemoteCharacteristic* chr, uint8_t* data,
 
     case 0x25: case 0x60:  // 8 / KP8 — shock ch2
       Serial.printf("[KEY] 8 → shock Ch2  level=%d\n", levelCh2);
-      enqueueRF(1, ACTION_SHOCK, levelCh2);
-      break;
-
-    case 0x26: case 0x61:  // 9 / KP9 — shock both channels
-      Serial.printf("[KEY] 9 → shock BOTH  Ch1=%d Ch2=%d\n", levelCh1, levelCh2);
-      enqueueRF(0, ACTION_SHOCK, levelCh1);
       enqueueRF(1, ACTION_SHOCK, levelCh2);
       break;
 
@@ -413,19 +409,23 @@ void setup() {
   Serial.printf ("  Firmware built: %s %s\n", __DATE__, __TIME__);
   Serial.printf ("  TX ID:      0x%04X\n", TRANSMITTER_ID);
   Serial.printf ("  DATA_PIN:   GPIO%d\n", DATA_PIN);
+  Serial.printf ("  ENABLE_PIN: GPIO%d\n", ENABLE_PIN);
   Serial.printf ("  Ch1 level:  %d\n", levelCh1);
   Serial.printf ("  Ch2 level:  %d\n", levelCh2);
-  Serial.println("  Keys: 7/8=shock  9=both shock  4/5=lvl+  1/2=lvl-");
-  Serial.println("        6/3=test   +/-=both       0=reset");
+  Serial.println("  Keys: 7/8=shock  4/5=lvl+  1/2=lvl-");
+  Serial.println("        6/3=test   +/-=both   0=reset");
   Serial.println("========================================\n");
 
   rfQueue = xQueueCreate(RF_QUEUE_LEN, sizeof(RFCmd));
   Serial.println("[SETUP] RF command queue created");
 
   Serial.println("[SETUP] Configuring RF pins …");
-  pinMode(DATA_PIN, OUTPUT);
-  digitalWrite(DATA_PIN, LOW);
-  Serial.printf("[SETUP] GPIO%d (DATA) = LOW\n", DATA_PIN);
+  pinMode(DATA_PIN,   OUTPUT);
+  pinMode(ENABLE_PIN, OUTPUT);
+  digitalWrite(DATA_PIN,   LOW);
+  digitalWrite(ENABLE_PIN, LOW);
+  Serial.printf("[SETUP] GPIO%d (DATA)   = LOW\n", DATA_PIN);
+  Serial.printf("[SETUP] GPIO%d (ENABLE) = LOW\n", ENABLE_PIN);
 
   Serial.println("[SETUP] Initialising BLE stack …");
   BLEDevice::init("ESP32-Shocker");
