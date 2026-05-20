@@ -109,13 +109,15 @@ def main():
 
     print(f"Connecting to {port} at {baud} baud ...")
     try:
-        ser = serial.Serial(port, baud, timeout=0.1)
+        ser = serial.Serial(port, baud, timeout=0.1,
+                        rtscts=False, dsrdtr=False, xonxoff=False,
+                        write_timeout=2)
     except serial.SerialException as e:
         print(f"Error opening {port}: {e}")
         sys.exit(1)
 
     # ESP32 resets when the serial port opens; wait for it to boot
-    time.sleep(1.5)
+    time.sleep(3)
     ser.reset_input_buffer()
 
     stop_event = threading.Event()

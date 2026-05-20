@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Shocker Serial</title>
+<style>
+  body { font-family: monospace; background: #111; color: #eee; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+  h2 { color: #f80; margin-bottom: 4px; }
+  small { color: #888; }
+  #log { background: #1a1a1a; border: 1px solid #333; padding: 10px; height: 200px; overflow-y: auto;
+         font-size: 13px; margin: 12px 0; white-space: pre-wrap; }
+  .row { display: flex; gap: 8px; margin: 6px 0; }
+  button { padding: 10px 16px; background: #333; color: #eee; border: 1px solid #555;
+           cursor: pointer; font-family: monospace; font-size: 14px; border-radius: 4px; }
+  button:hover { background: #444; }
+  button.danger { background: #600; border-color: #900; }
+  button.danger:hover { background: #800; }
+  button.warn { background: #550; border-color: #880; }
+  button.warn:hover { background: #660; }
+  button.ok { background: #050; border-color: #080; }
+  button.ok:hover { background: #070; }
+  button#connectBtn { background: #005; border-color: #00a; padding: 10px 24px; }
+  button#connectBtn:hover { background: #007; }
+  input[type=number] { width: 60px; background: #222; color: #eee; border: 1px solid #555;
+                       padding: 8px; font-family: monospace; font-size: 14px; border-radius: 4px; }
+  label { color: #aaa; font-size: 13px; }
+  hr { border-color: #333; margin: 14px 0; }
+  .levels { display: flex; gap: 24px; margin: 8px 0; }
+  .level-display { color: #f80; font-size: 18px; }
+</style>
+</head>
+<body>
+
+<h2>⚡ Shocker Serial</h2>
+<small>Chrome / Edge only — Web Serial API</small>
+
+<div id="log">Desconectado. Presioná "Conectar".\n</div>
+
+<div class="row">
+  <button id="connectBtn" onclick="toggleConnect()">Conectar</button>
+  <div class="levels">
+    <span>Ch1: <span class="level-display" id="l1">1</span></span>
+    <span>Ch2: <span class="level-display" id="l2">1</span></span>
+  </div>
+</div>
+
+<hr>
+
+<div class="row">
+  <button class="danger" onclick="send('7')">⚡ Shock Ch1 (7)</button>
+  <button class="danger" onclick="send('8')">⚡ Shock Ch2 (8)</button>
+  <button class="danger" onclick="send('9')">⚡ Shock AMBOS (9)</button>
+</div>
+
+<div class="row">
+  <button class="warn" onclick="send('6')">Test Ch1 (6)</button>
+  <button class="warn" onclick="send('3')">Test Ch2 (3)</button>
+</div>
+
+<hr>
+
+<div class="row">
+  <label>Ch1:</label>
+  <button onclick="send('1')">− (1)</button>
+  <button onclick="send('4')">+ (4)</button>
+  <label>Ch2:</label>
+  <button onclick="send('2')">− (2)</button>
+  <button onclick="send('5')">+ (5)</button>
+</div>
+<div class="row">
+  <label>Ambos:</label>
+  <button onclick="send('*')">− (*)</button>
+  <button onclick="send('0')">+ (0)</button>
+  <button class="ok" onclick="send('#')">Reset (#)</button>
+</div>
+
+<hr>
+
+<div class="row">
+  <label>Shock Ch1 intensidad:</label>
+  <input type="number" id="i1" min="1" max="99" value="10">
+  <button class="danger" onclick="shockN('1')">⚡</button>
+</div>
+<div class="row">
+  <label>Shock Ch2 intensidad:</label>
+  <input type="number" id="i2" min="1" max="99" value="10">
+  <button class="danger" onclick="shockN('2')">⚡</button>
+</div>
+<div class="row">
+  <label>Shock ambos intensidad:</label>
+  <input type="number" id="ib" min="1" max="99" value="10">
+  <button class="danger" onclick="shockN('B')">⚡</button>
+</div>
+<div class="row">
+  <label>Nivel Ch1:</label>
+  <input type="number" id="lv1" min="1" max="99" value="1">
+  <button onclick="setLevel('1')">Set</button>
+  <label>Nivel Ch2:</label>
+  <input type="number" id="lv2" min="1" max="99" value="1">
+  <button onclick="setLevel('2')">Set</button>
+</div>
+<div class="row">
+  <button onclick="send('STATUS')">Status</button>
+</div>
+
+<script>
+let port, reader, writer, connected = false;
+let l1 = 1, l2 = 1;
+
+function log(msg) {
+  const el = document.getElementById('log');
+  el.textContent += msg + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+
+async function toggleConnect() {
+  if (connected) { await disconnect(); return; }
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+    connected = true;
+    document.getElementById('connectBtn').textContent = 'Desconectar';
+    log('[conectado]');
+    readLoop();
+  } catch (e) {
+    log('[error] ' + e.message);
+  }
+}
+
+async function disconnect() {
+  connected = false;
+  try { reader && await reader.cancel(); } catch {}
+  try { await port.close(); } catch {}
+  document.getElementById('connectBtn').textContent = 'Conectar';
+  log('[desconectado]');
+}
+
+async function readLoop() {
+  const decoder = new TextDecoderStream();
+  port.readable.pipeTo(decoder.writable);
+  reader = decoder.readable.getReader();
+  let buf = '';
+  try {
+    while (connected) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += value;
+      let lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t) continue;
+        log('ESP32: ' + t);
+        // track levels from serial output
+        const m1 = t.match(/Ch1[= ](\d+)/); if (m1) { l1 = +m1[1]; document.getElementById('l1').textContent = l1; }
+        const m2 = t.match(/Ch2[= ](\d+)/); if (m2) { l2 = +m2[1]; document.getElementById('l2').textContent = l2; }
+      }
+    }
+  } catch {}
+}
+
+async function send(cmd) {
+  if (!connected) { log('[no conectado]'); return; }
+  const encoder = new TextEncoder();
+  const w = port.writable.getWriter();
+  await w.write(encoder.encode(cmd + '\n'));
+  w.releaseLock();
+  log('> ' + cmd);
+}
+
+function shockN(ch) {
+  const val = document.getElementById('i' + ch.toLowerCase()).value;
+  send('SHOCK' + ch + ' ' + val);
+}
+
+function setLevel(ch) {
+  const val = document.getElementById('lv' + ch).value;
+  send('LEVEL' + ch + ' ' + val);
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  const map = {'7':'7','8':'8','9':'9','4':'4','5':'5','1':'1','2':'2','6':'6','3':'3','0':'0','*':'*','#':'#'};
+  if (map[e.key]) send(map[e.key]);
+});
+</script>
+</body>
+</html>
