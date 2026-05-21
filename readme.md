@@ -29,6 +29,31 @@ Compramos distintos modulos RF de 433 MHZ para OOK y lo conectamos a una ESP32. 
 | `src/Telegram_Bot` | Control por comandos de Telegram sobre WiFi |
 | `src/BLE_Keyboard` | Dispara shocks al presionar teclas en un teclado BLE HID |
 | `src/Dual_Mode` | **Fusión de ambos** — switchea entre modos con el botón BOOT |
+| `src/Numpad_Serial` | **Sin BLE ni WiFi** — numpad 4×4 cableado directo + control por puerto serial |
+
+### Numpad_Serial
+
+Control standalone sin radio: un teclado matricial 4×4 conectado directamente a 8 pines del ESP32, más comandos por puerto serial desde una PC.
+
+| Tecla | Función |
+|---|---|
+| `7` | Shock collar 1 |
+| `8` | Shock collar 2 |
+| `9` | Shock ambos |
+| `4` / `5` | Nivel collar 1/2 +1 |
+| `1` / `2` | Nivel collar 1/2 -1 |
+| `0` | Ambos niveles +1 |
+| `*` | Ambos niveles -1 |
+| `6` / `3` | Test collar 1/2 (vibra + beep) |
+| `#` | Reset niveles a 1 |
+
+Incluye dos interfaces para la PC:
+- `shocker_serial.py` — script Python (requiere `pip install pyserial`)
+- `shocker_serial.html` — página web, abrila en Chrome o Edge (usa Web Serial API, no necesita instalar nada)
+
+> **Windows:** puede ser necesario instalar el driver USB-serial del chip de la placa.
+> El driver para CH340/CH341 (el más común en placas NodeMCU) o CP210x se puede bajar de:
+> https://www.silabs.com/documents/public/software/CP210x_Universal_Windows_Driver.zip
 
 ### Dual_Mode — cómo switchear de modo
 

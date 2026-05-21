@@ -110,8 +110,7 @@ def main():
     print(f"Connecting to {port} at {baud} baud ...")
     try:
         ser = serial.Serial(port, baud, timeout=0.1,
-                        rtscts=False, dsrdtr=False, xonxoff=False,
-                        write_timeout=2)
+                        rtscts=False, dsrdtr=False, xonxoff=False)
     except serial.SerialException as e:
         print(f"Error opening {port}: {e}")
         sys.exit(1)
